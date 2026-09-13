@@ -1,0 +1,35 @@
+{
+  "created_utc": "2026-07-22T21:32:29.725147+00:00",
+  "subset": "FD001",
+  "rul_cap": 125,
+  "n_base_features_kept": 17,
+  "rolling_window": 5,
+  "n_features_total": 34,
+  "groupkfold_xgb_rmse_mean": 18.599046738629436,
+  "test_metrics": {
+    "ridge": {
+      "model": "ridge",
+      "n_test_units": 100,
+      "rmse_raw_rul": 21.793367604958323,
+      "rmse_capped125": 20.842715331290226,
+      "mae_capped125": 16.343562943806187,
+      "nasa_score_capped125": 1285.3003040284152,
+      "nasa_score_raw": 1337.506179650984
+    },
+    "xgboost": {
+      "model": "xgboost",
+      "n_test_units": 100,
+      "rmse_raw_rul": 18.406503536203125,
+      "rmse_capped125": 17.484151162176904,
+      "mae_capped125": 12.288255777359009,
+      "nasa_score_capped125": 929.3452913157207,
+      "nasa_score_raw": 959.1924931843829
+    }
+  },
+  "notes": [
+    "Train labels use capped RUL (125).",
+    "Primary reported metric: rmse_capped125 on last cycle of each test unit.",
+    "Also report nasa_score_capped125 (asymmetric).",
+    "Reference idea: tabular PdM baseline similar in spirit to eastani/cmapss pipelines; code rewritten in-repo."
+  ]
+}

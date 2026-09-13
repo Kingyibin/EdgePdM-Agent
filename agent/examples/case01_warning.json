@@ -1,0 +1,9 @@
+{
+  "engine_id": 1,
+  "predicted_rul": 38,
+  "risk_level": "warning",
+  "abnormal_sensors": ["sensor_11", "sensor_14"],
+  "trend": "temperature/pressure related channels rising over last 20 cycles",
+  "model": "lstm_onnx",
+  "notes": "RUL from edge model; do not recompute"
+}

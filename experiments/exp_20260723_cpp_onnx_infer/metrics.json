@@ -1,0 +1,13 @@
+{
+  "created_local": "2026-07-23",
+  "model_onnx": "models/onnx/rul_lstm.onnx",
+  "sample": "models/onnx/sample_window_unit1_scaled.csv",
+  "python_ort_pred": 118.47169494628906,
+  "cpp_ort_pred": 118.472,
+  "true_rul_unit1": 112.0,
+  "latency_ms_avg": 0.167002,
+  "warmup": 5,
+  "iters": 50,
+  "intra_op_threads": 1,
+  "toolchain": "MinGW-w64 g++ 16.1.0 + CMake 4.3.3 + onnxruntime 1.20.1"
+}

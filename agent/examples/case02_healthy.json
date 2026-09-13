@@ -1,0 +1,8 @@
+{
+  "engine_id": 12,
+  "predicted_rul": 118,
+  "risk_level": "healthy",
+  "abnormal_sensors": [],
+  "trend": "stable within training distribution",
+  "model": "lstm_onnx"
+}

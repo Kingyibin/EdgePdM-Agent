@@ -1,0 +1,24 @@
+{
+  "metrics": {
+    "name": "r07_w30_h64_l1",
+    "cfg": {
+      "window": 30,
+      "hidden": 64,
+      "num_layers": 1,
+      "lr": 0.001,
+      "seed": 6105
+    },
+    "rmse_raw_rul": 15.661431706136034,
+    "rmse_capped125": 14.434591763999979,
+    "mae_capped125": 10.6690686750412,
+    "nasa_score_capped125": 367.5169082888479,
+    "baseline_xgboost_rmse_capped125": 17.484151162176904,
+    "beat_xgboost_rmse": true,
+    "best_val_rmse": 13.252591756371416,
+    "rmse_mean_mcdropout": 14.661051692267364,
+    "coverage95_mcdropout": 0.72,
+    "mean_std_mcdropout": 7.6104912757873535,
+    "elapsed_total": 21.1
+  },
+  "round": 7
+}

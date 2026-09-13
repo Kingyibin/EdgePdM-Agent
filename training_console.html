@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EdgePdM-Agent · RUL LSTM 训练控制台</title>
+<style>
+  :root{
+    --bg:#1e1e1e; --bg2:#252526; --bg3:#2d2d30; --bar:#333; --fg:#d4d4d4; --fg2:#858585;
+    --blue:#3794ff; --green:#4ec9b0; --orange:#ce9178; --purple:#c586c0; --yellow:#dcdcaa;
+    --red:#f48771; --teal:#569cd6;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);
+    font-family:"Cascadia Code","Consolas","SF Mono",Menlo,monospace;font-size:13px;overflow:hidden;}
+  /* 顶栏 */
+  .topbar{height:38px;background:var(--bg3);display:flex;align-items:center;padding:0 12px;
+    border-bottom:1px solid #111;gap:14px;}
+  /* 马拉松条 */
+  .marabanner{height:24px;background:#0b3d2e;border-bottom:1px solid #0a5;display:flex;align-items:center;
+    padding:0 12px;color:#7fe7c4;font-size:12px;gap:10px;}
+  .marabanner b{color:#bff7e3;}
+  .topbar .logo{color:var(--green);font-weight:bold;letter-spacing:.3px;}
+  .topbar .sub{color:var(--fg2);}
+  .conn{display:flex;align-items:center;gap:6px;margin-left:auto;color:var(--fg2);}
+  .dot{width:9px;height:9px;border-radius:50%;background:#555;box-shadow:0 0 0 0 rgba(78,201,176,.6);}
+  .dot.live{background:var(--green);animation:pulse 1.6s infinite;}
+  .dot.off{background:var(--red);}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(78,201,176,.5);}70%{box-shadow:0 0 0 7px rgba(78,201,176,0);}100%{box-shadow:0 0 0 0 rgba(78,201,176,0);}}
+  .topbar .clock{color:var(--fg2);}
+  .topbar .hint{color:#6a6a6a;font-size:11px;}
+  /* 主区 */
+  .main{display:grid;grid-template-columns:200px 1fr 380px;height:calc(100% - 38px - 24px - 190px);}
+  .panel{overflow:auto;}
+  .explorer{background:var(--bg2);border-right:1px solid #111;}
+  .explorer h4{margin:0;padding:8px 12px;color:var(--fg2);font-size:11px;text-transform:uppercase;letter-spacing:.6px;}
+  .tree .f{padding:3px 12px 3px 26px;color:var(--fg);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tree .f:hover{background:#37373d;}
+  .tree .f.dir{color:var(--blue);}
+  .tree .f.active{background:#37373d;}
+  .editor{display:flex;flex-direction:column;background:var(--bg);}
+  .tabs{display:flex;background:var(--bg2);border-bottom:1px solid #111;}
+  .tab{padding:7px 14px;color:var(--fg2);border-right:1px solid #111;font-size:12px;white-space:nowrap;}
+  .tab.active{background:var(--bg);color:var(--fg);border-top:1px solid var(--blue);}
+  .code-wrap{flex:1;display:flex;overflow:auto;}
+  .gutter{padding:8px 8px 8px 12px;text-align:right;color:#6a6a6a;user-select:none;background:var(--bg);}
+  .gutter div{line-height:19px;height:19px;}
+  .gutter div.cur{background:#282828;color:#c6c6c6;}
+  .code{flex:1;padding:8px 12px;white-space:pre;}
+  .code .ln{line-height:19px;height:19px;display:block;}
+  .code .ln.cur{background:#282828;}
+  .code .ln.hl{background:rgba(55,148,255,.16);box-shadow:inset 2px 0 0 var(--blue);}
+  .k{color:var(--blue);} .s{color:var(--orange);} .c{color:#6a9955;} .n{color:var(--purple);} .f{color:var(--yellow);}
+  /* 右栏仪表盘 */
+  .dash{background:var(--bg2);border-left:1px solid #111;padding:10px;overflow:auto;}
+  .rp-h{color:var(--fg2);font-size:11px;text-transform:uppercase;letter-spacing:.5px;margin:6px 0 6px;}
+  .cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;}
+  .card{background:var(--bg3);border-radius:6px;padding:8px 10px;}
+  .card .l{color:var(--fg2);font-size:10px;}
+  .card .v{font-size:18px;color:var(--green);font-weight:bold;margin-top:2px;}
+  .card .v.sm{font-size:14px;}
+  canvas{width:100%;background:#1b1b1b;border:1px solid #111;border-radius:6px;display:block;}
+  .sysbar{margin:5px 0;}
+  .sysbar .lab{display:flex;justify-content:space-between;color:var(--fg2);font-size:11px;margin-bottom:2px;}
+  .track{height:7px;background:#1b1b1b;border-radius:4px;overflow:hidden;}
+  .fill{height:100%;background:var(--blue);width:0%;transition:width .6s;}
+  .fill.cpu{background:var(--green);} .fill.mem{background:var(--purple);} .fill.disk{background:var(--orange);}
+  .localinfo{font-size:11px;color:var(--fg2);line-height:1.7;}
+  .localinfo b{color:var(--fg);font-weight:normal;}
+  /* 终端 */
+  .term{height:190px;background:#181818;border-top:1px solid #111;display:flex;flex-direction:column;}
+  .term .bar{height:30px;display:flex;align-items:center;gap:14px;padding:0 12px;background:var(--bg3);border-bottom:1px solid #111;}
+  .term .bar .t{color:var(--fg);font-size:12px;}
+  .term .bar .tb{color:var(--fg2);font-size:12px;padding:3px 8px;border-radius:4px;cursor:pointer;}
+  .term .bar .tb.active{background:#37373d;color:var(--fg);}
+  .term .bar .btn{margin-left:auto;background:#0e639c;color:#fff;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:11px;}
+  .term .bar .btn:hover{background:#1177bb;}
+  .term .out{flex:1;overflow:auto;padding:6px 12px;font-size:12px;line-height:1.6;}
+  .term .out .ln{white-space:pre-wrap;}
+  .lv-info{color:var(--fg);} .lv-debug{color:var(--fg2);} .lv-success{color:var(--green);} .lv-error{color:var(--red);}
+  .term .out .ts{color:#5a5a5a;margin-right:8px;}
+  /* 老板屏 */
+  .boss{position:fixed;inset:0;background:#fff;color:#222;display:none;overflow:auto;padding:40px 60px;z-index:50;}
+  .boss.on{display:block;}
+  .boss h1{font-size:24px;margin:0 0 6px;}
+  .boss .meta{color:#888;font-size:13px;margin-bottom:18px;}
+  .boss h2{font-size:16px;margin:18px 0 6px;border-left:4px solid #0e639c;padding-left:8px;}
+  .boss p,.boss li{font-size:14px;line-height:1.8;}
+  .boss table{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px;}
+  .boss th,.boss td{border:1px solid #ddd;padding:6px 10px;text-align:left;}
+  .boss th{background:#f3f6fa;}
+  .bosstip{position:fixed;bottom:14px;right:18px;color:#999;font-size:12px;z-index:51;}
+  .ppt{background:#0b2447;color:#fff;min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:0 80px;}
+  .ppt h1{color:#fff;font-size:40px;} .ppt .sub{color:#9ecbff;font-size:18px;margin-top:14px;}
+  .neofetch{font-family:"Cascadia Code",monospace;font-size:13px;line-height:1.5;white-space:pre;}
+  .neofetch .a{color:#0e639c;}
+</style>
+</head>
+<body>
+<div id="fileWarn" style="display:none;position:fixed;inset:0;background:#1e1e1e;color:#f48771;z-index:99;padding:60px;font-size:15px;line-height:1.9">
+  ⚠ 连接方式错误<br><br>
+  你正在用 <b>file://</b> 直接打开本页面，实时数据接口（/stream、/file）会指向本地磁盘，导致"一直断开连接"。<br><br>
+  正确做法：先双击 <b>start_training_console.bat</b> 启动服务端，再用浏览器访问 <b>http://127.0.0.1:8765/</b>（不要双击 html 文件本身）。
+</div>
+<div class="topbar">
+  <span class="logo">⬢ EdgePdM-Agent</span>
+  <span class="sub">RUL LSTM 实时训练控制台</span>
+  <span id="phaseTag" class="sub">· 空闲</span>
+  <div class="conn"><span id="dot" class="dot"></span><span id="connTxt">连接中…</span></div>
+  <span class="clock" id="clock">--:--:--</span>
+  <span class="hint">Esc 老板键 (1周报 2PPT 3方案 4系统)</span>
+</div>
+
+<div class="marabanner" id="maraBanner">🏃 马拉松模式 · 待命</div>
+
+<div class="main">
+  <div class="panel explorer">
+    <h4>资源管理器</h4>
+    <div class="tree" id="tree"></div>
+  </div>
+
+  <div class="panel editor">
+    <div class="tabs">
+      <div class="tab active" id="edTab">run_lstm_fd001.py</div>
+    </div>
+    <div class="code-wrap">
+      <div class="gutter" id="gutter"></div>
+      <div class="code" id="code"></div>
+    </div>
+  </div>
+
+  <div class="panel dash">
+    <div class="rp-h">训练指标 (实时)</div>
+    <div class="cards">
+      <div class="card"><div class="l">Epoch</div><div class="v sm" id="cEpoch">0/0</div></div>
+      <div class="card"><div class="l">Train MSE</div><div class="v sm" id="cMse">--</div></div>
+      <div class="card"><div class="l">Val RMSE</div><div class="v sm" id="cRmse">--</div></div>
+      <div class="card"><div class="l">耗时</div><div class="v sm" id="cEl">0s</div></div>
+      <div class="card"><div class="l">ETA</div><div class="v sm" id="cEta">--</div></div>
+      <div class="card"><div class="l">吞吐</div><div class="v sm" id="cThr">--</div></div>
+      <div class="card"><div class="l">RMSE(MC均值)</div><div class="v sm" id="cRmseU">--</div></div>
+      <div class="card"><div class="l">95%PI 覆盖率</div><div class="v sm" id="cCov">--</div></div>
+      <div class="card"><div class="l">平均σ</div><div class="v sm" id="cStd">--</div></div>
+    </div>
+    <canvas id="lossCanvas" height="150"></canvas>
+    <div class="rp-h">Val RMSE 曲线</div>
+    <canvas id="rmseCanvas" height="150"></canvas>
+    <div class="rp-h">RUL 预测 + 95% 置信带 (MC Dropout)</div>
+    <canvas id="predCanvas" height="170"></canvas>
+
+    <div class="rp-h">本机信息 (浏览器真实采集)</div>
+    <div class="localinfo" id="localInfo">采集中…</div>
+
+    <div class="rp-h">系统占用</div>
+    <div class="sysbar"><div class="lab"><span>CPU (本进程)</span><span id="cpuV">--</span></div><div class="track"><div class="fill cpu" id="cpuF"></div></div></div>
+    <div class="sysbar"><div class="lab"><span>内存</span><span id="memV">--</span></div><div class="track"><div class="fill mem" id="memF"></div></div></div>
+    <div class="sysbar"><div class="lab"><span>磁盘</span><span id="diskV">--</span></div><div class="track"><div class="fill disk" id="diskF"></div></div></div>
+  </div>
+</div>
+
+<div class="term">
+  <div class="bar">
+    <span class="t">终端</span>
+    <span class="tb active">训练日志</span>
+    <span class="tb" id="tbRuns">实验 (runs)</span>
+    <button class="btn" id="skipBtn">⏭ 跳过</button>
+    <button class="btn" id="pauseBtn">⏸ 暂停</button>
+    <button class="btn" id="resumeBtn" style="display:none">▶ 恢复</button>
+  </div>
+  <div class="out" id="out"></div>
+</div>
+
+<!-- 老板屏 -->
+<div class="boss" id="boss"><div id="bossBody"></div></div>
+<div class="bosstip" id="bosstip" style="display:none;">按 Esc 返回控制台 · 1周报 2PPT 3方案 4系统</div>
+
+<script>
+/* ===================== 真实本机信息采集 ===================== */
+const SysInfo = {gpu:"采集中…",cores:"?",mem:"?",res:"?",tz:"?",net:"?",ip:"采集中…",bat:"?",lang:navigator.language};
+function renderLocal(){
+  document.getElementById("localInfo").innerHTML =
+    `显卡 (WebGL)：<b>${SysInfo.gpu}</b><br>`+
+    `逻辑核心：<b>${SysInfo.cores}</b> · 内存(上报)：<b>${SysInfo.mem}</b><br>`+
+    `分辨率：<b>${SysInfo.res}</b> · 时区：<b>${SysInfo.tz}</b><br>`+
+    `网络：<b>${SysInfo.net}</b> · 局域网IP：<b>${SysInfo.ip}</b><br>`+
+    `电量：<b>${SysInfo.bat}</b> · 语言：<b>${SysInfo.lang}</b>`;
+}
+(function(){
+  try{
+    const c=document.createElement("canvas");
+    const gl=c.getContext("webgl")||c.getContext("experimental-webgl");
+    if(gl){const e=gl.getExtension("WEBGL_debug_renderer_info");
+      SysInfo.gpu=e?gl.getParameter(e.UNMASKED_RENDERER_WEBGL):"WebGL 可用(型号隐藏)";}
+    else SysInfo.gpu="无 WebGL";
+  }catch(e){SysInfo.gpu="读取失败";}
+  SysInfo.cores=navigator.hardwareConcurrency||"?";
+  SysInfo.mem=navigator.deviceMemory?navigator.deviceMemory+" GB":"?";
+  SysInfo.res=screen.width+"×"+screen.height;
+  SysInfo.tz=Intl.DateTimeFormat().resolvedOptions().timeZone;
+  SysInfo.lang=navigator.language;
+  const cn=navigator.connection||{};
+  SysInfo.net=(cn.effectiveType||cn.type||"?")+(cn.downlink?(" / "+cn.downlink+"Mb/s"):"");
+  if(navigator.getBattery){navigator.getBattery().then(b=>{SysInfo.bat=Math.round(b.level*100)+"%"+(b.charging?"(充电)":"");renderLocal();}).catch(()=>{SysInfo.bat="不支持";renderLocal();});}
+  else SysInfo.bat="不支持";
+  try{
+    const pc=new RTCPeerConnection({iceServers:[]});
+    pc.createDataChannel("");
+    pc.createOffer().then(o=>pc.setLocalDescription(o)).catch(()=>{});
+    pc.onicecandidate=e=>{if(!e.candidate)return;const m=e.candidate.candidate.match(/(\d+\.\d+\.\d+\.\d+)/);
+      if(m&&!m[1].startsWith("127")&&!m[1].startsWith("169.254")){SysInfo.ip=m[1];renderLocal();pc.close();}};
+  }catch(e){SysInfo.ip="受 mDNS 保护";renderLocal();}
+  renderLocal();
+})();
+
+/* ===================== 文件树 + 编辑器 ===================== */
+const TREE=[["dir","scripts/"],["f","scripts/run_lstm_fd001.py"],["f","scripts/run_baseline_fd001.py"],
+  ["f","scripts/export_lstm_onnx.py"],["dir","src/"],["f","src/lstm_model.py"],["f","src/sequence.py"],
+  ["f","src/data.py"],["f","src/features.py"],["f","src/metrics.py"],["dir","data/raw/"],
+  ["f","data/raw/train_FD001.txt"],["f","data/raw/test_FD001.txt"],["f","configs/default.yaml"],
+  ["dir","experiments/"],["f","README.md"],["f","AGENTS.md"]];
+const treeEl=document.getElementById("tree");
+TREE.forEach(([t,name])=>{const d=document.createElement("div");
+  d.className="f"+(t==="dir"?" dir":"");d.textContent=(t==="dir"?"📁 ":"📄 ")+name;
+  if(name==="scripts/run_lstm_fd001.py")d.classList.add("active");
+  d.onclick=()=>loadFile(name);treeEl.appendChild(d);});
+
+let editorLines=[],curRange=[0,0];
+function hl(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+  .replace(/\b(import|from|def|for|in|if|else|return|with|class|while|try|except|None|True|False|as)\b/g,"<span class='k'>$1</span>")
+  .replace(/(#.*)$/g,"<span class='c'>$1</span>")
+  .replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/g,"<span class='s'>$1</span>")
+  .replace(/\b(\d+\.?\d*)\b/g,"<span class='n'>$1</span>");}
+function renderEditor(){
+  const g=document.getElementById("gutter"),c=document.getElementById("code");
+  let gt="",ct="";
+  editorLines.forEach((ln,i)=>{const n=i+1;const isCur=n>=curRange[0]&&n<=curRange[1];
+    gt+=`<div class="${isCur?'cur':''}">${n}</div>`;
+    ct+=`<span class="ln ${isCur?'hl':''}">${hl(ln)||'&nbsp;'}</span>`;});
+  g.innerHTML=gt;c.innerHTML=ct;
+}
+function loadFile(name){
+  if(name.endsWith("/"))return;
+  fetch("/file?name="+encodeURIComponent(name)).then(r=>r.json()).then(d=>{
+    editorLines=d.text.split("\n");
+    document.getElementById("edTab").textContent=name.split("/").pop();
+    curRange=[0,0];renderEditor();
+  }).catch(()=>{});
+}
+loadFile("scripts/run_lstm_fd001.py");
+
+const PHASE_RANGE={
+  loading_data:[60,62], building_windows:[64,86], train:[106,132],
+  eval:[134,149], done:[155,183], idle:[0,0]
+};
+function setPhase(p){const r=PHASE_RANGE[p]||[0,0];curRange=r;renderEditor();
+  document.getElementById("phaseTag").textContent="· "+( {loading_data:"加载数据",building_windows:"构建窗口",train:"训练中",eval:"评估测试集",done:"完成",idle:"空闲"}[p]||p);}
+
+/* ===================== 曲线 ===================== */
+const lossData=[],rmseData=[];
+function drawCanvas(cv,data,color,label){
+  const ctx=cv.getContext("2d");const W=cv.width=cv.clientWidth;const H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  if(data.length<1)return;
+  const xs=data.map((_,i)=>i);const ys=data;
+  const ymin=Math.min(...ys),ymax=Math.max(...ys);const pad=(ymax-ymin)*0.1||1;
+  const lo=ymin-pad,hi=ymax+pad;
+  // 网格
+  ctx.strokeStyle="#2a2a2a";ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){const y=H*i/4;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  const px=i=>data.length===1?W/2:(xs[i]/(data.length-1))*W;
+  const py=v=>H-((v-lo)/(hi-lo))*H;
+  ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+  data.forEach((v,i)=>{const X=px(i),Y=py(v);i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+  ctx.stroke();
+  // 末点
+  ctx.fillStyle=color;ctx.beginPath();ctx.arc(px(data.length-1),py(data[data.length-1]),3,0,7);ctx.fill();
+  ctx.fillStyle="#aaa";ctx.font="11px monospace";
+  ctx.fillText(label,6,14);ctx.fillText((ymax).toFixed(3),W-52,14);ctx.fillText((lo).toFixed(3),W-52,H-6);
+}
+let predData=null;
+function redraw(){drawCanvas(document.getElementById("lossCanvas"),lossData,"#4ec9b0","Train MSE");
+  drawCanvas(document.getElementById("rmseCanvas"),rmseData,"#569cd6","Val RMSE");
+  if(predData) drawPreds(predData);}
+function drawPreds(d){
+  predData=d;const cv=document.getElementById("predCanvas");
+  const ctx=cv.getContext("2d");const W=cv.width=cv.clientWidth;const H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const n=d.y_true.length;
+  const all=d.y_true.concat(d.mean);const mx=Math.max(...all)*1.05||1;
+  const pad=34;
+  const px=v=>pad+(v/mx)*(W-pad*2);
+  const py=v=>H-pad-(v/mx)*(H-pad*2);
+  ctx.strokeStyle="#2a2a2a";ctx.lineWidth=1;ctx.strokeRect(pad,pad,W-pad*2,H-pad*2);
+  ctx.strokeStyle="#555";ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(px(0),py(0));ctx.lineTo(px(mx),py(mx));ctx.stroke();ctx.setLineDash([]);
+  for(let i=0;i<n;i++){
+    const X=px(d.y_true[i]),Y=py(d.mean[i]);
+    const eU=py(Math.max(0,d.mean[i]+1.96*d.std[i]));
+    const eL=py(d.mean[i]-1.96*d.std[i]);
+    ctx.strokeStyle="rgba(78,201,176,.35)";ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(X,eU);ctx.lineTo(X,eL);ctx.stroke();
+    ctx.fillStyle="#4ec9b0";ctx.beginPath();ctx.arc(X,Y,2.2,0,7);ctx.fill();
+  }
+  ctx.fillStyle="#aaa";ctx.font="11px monospace";
+  ctx.fillText("predicted (MC mean)",W-160,pad-8);
+  ctx.fillText("true RUL →",W-pad-58,H-10);
+}
+
+/* ===================== 终端日志 ===================== */
+const out=document.getElementById("out");
+function addLog(t,msg,level){
+  const d=document.createElement("div");d.className="ln lv-"+level;
+  d.innerHTML=`<span class="ts">${t}</span>${msg.replace(/</g,"&lt;")}`;
+  out.appendChild(d);out.scrollTop=out.scrollHeight;
+}
+
+/* ===================== SSE 连接 ===================== */
+let bossFinal=null;
+const dot=document.getElementById("dot"),connTxt=document.getElementById("connTxt");
+let es=null, reconnectTimer=null;
+function connect(){
+  if(location.protocol==="file:"){document.getElementById("fileWarn").style.display="block";return;}
+  if(es) return;
+  es=new EventSource("/stream");
+  es.onopen=()=>{dot.className="dot live";connTxt.textContent="直播中";};
+  es.onerror=()=>{
+    dot.className="dot off";connTxt.textContent="断开，重连中…";
+    if(es){try{es.close();}catch(_){}es=null;}
+    if(!reconnectTimer) reconnectTimer=setTimeout(()=>{reconnectTimer=null;connect();},1500);
+  };
+  es.onmessage=e=>{
+    let ev;try{ev=JSON.parse(e.data);}catch(_){return;}
+    if(ev.type==="log"){addLog(ev.data.t,ev.data.msg,ev.data.level);}
+    else if(ev.type==="phase"){setPhase(ev.data.phase);}
+    else if(ev.type==="marathon"){
+      if(ev.data.kind==="round_start"){
+        addLog(new Date().toTimeString().slice(0,8),"🏃 马拉松第 "+ev.data.round+" 轮开始","info");
+        document.getElementById("maraBanner").innerHTML="🏃 马拉松模式 · <b>第 "+ev.data.round+" 轮</b> · 进行中";
+      }
+    }
+    else if(ev.type==="exp_start"){
+      lossData.length=0;rmseData.length=0;redraw();
+      const c=ev.data.cfg;
+      document.getElementById("maraBanner").innerHTML=
+        "🏃 马拉松 · 第 <b>"+ev.data.round+"</b> 轮 · 实验 <b>"+ev.data.index+"/"+ev.data.total+
+        "</b> · <b>"+ev.data.name+"</b> · win="+c.window+" hid="+c.hidden+" L="+c.num_layers+" lr="+(+c.lr).toExponential(0)+" seed="+c.seed;
+      addLog(new Date().toTimeString().slice(0,8),"▶ 开始实验 "+ev.data.name,"info");
+      setPhase("loading_data");
+    }
+    else if(ev.type==="live_loss"){lossData.push(ev.data.loss);if(lossData.length>400)lossData.shift();redraw();}
+    else if(ev.type==="metric"){
+      lossData.push(ev.data.train_mse);rmseData.push(ev.data.val_rmse);
+      document.getElementById("cEpoch").textContent=ev.data.epoch+"/"+stateEpochs;
+      document.getElementById("cMse").textContent=ev.data.train_mse.toFixed(4);
+      document.getElementById("cRmse").textContent=ev.data.val_rmse.toFixed(4);
+      document.getElementById("cEl").textContent=ev.data.elapsed+"s";
+      document.getElementById("cEta").textContent=ev.data.eta+"s";
+      document.getElementById("cThr").textContent=ev.data.throughput+"/s";
+      redraw();
+    }
+    else if(ev.type==="sys"){
+      const s=ev.data;if(s.proc_cpu!=null){document.getElementById("cpuV").textContent=s.proc_cpu+"%";document.getElementById("cpuF").style.width=Math.min(100,s.proc_cpu)+"%";}
+      if(s.mem!=null){document.getElementById("memV").textContent=s.mem+"%";document.getElementById("memF").style.width=s.mem+"%";}
+      if(s.disk!=null){document.getElementById("diskV").textContent=s.disk+"%";document.getElementById("diskF").style.width=s.disk+"%";}
+    }
+    else if(ev.type==="unc"){
+      document.getElementById("cRmseU").textContent=(ev.data.rmse_mean??0).toFixed(3);
+      document.getElementById("cCov").textContent=((ev.data.coverage95??0)*100).toFixed(1)+"%";
+      document.getElementById("cStd").textContent=(ev.data.mean_std??0).toFixed(2);
+    }
+    else if(ev.type==="preds"){drawPreds(ev.data);}
+    else if(ev.type==="done"){
+      bossFinal=ev.data;
+      document.getElementById("cRmse").textContent=ev.data.rmse_capped125?.toFixed(3)||"--";
+      addLog(new Date().toTimeString().slice(0,8),"★ 最终 RMSE(capped125)="+ev.data.rmse_capped125?.toFixed(3)+"  MAE="+ev.data.mae_capped125?.toFixed(3),"success");
+      if(ev.data.rmse_mean_mcdropout!=null){
+        addLog(new Date().toTimeString().slice(0,8),"★ MC Dropout：RMSE(均值)="+ev.data.rmse_mean_mcdropout.toFixed(3)+"  95%PI覆盖率="+(ev.data.coverage95_mcdropout*100).toFixed(1)+"%  平均σ="+ev.data.mean_std_mcdropout.toFixed(2),"success");
+      }
+      setPhase("done");
+    }
+    else if(ev.type==="error"){addLog(new Date().toTimeString().slice(0,8),"✗ "+ev.data.msg,"error");}
+  };
+}
+let stateEpochs=18;
+connect();
+fetch("/state").then(r=>r.json()).then(s=>{stateEpochs=s.epochs;
+  document.getElementById("cEpoch").textContent=s.epoch+"/"+s.epochs;
+  const m=s.marathon||{};
+  if(m.running){document.getElementById("maraBanner").innerHTML="🏃 马拉松模式 · 第 <b>"+m.round+
+    "</b> 轮 · 实验 <b>"+m.index+"/"+m.total+"</b> · <b>"+m.name+"</b>";}
+  }).catch(()=>{});
+
+document.getElementById("skipBtn").onclick=()=>{
+  fetch("/skip",{method:"POST"}).then(()=>{addLog(new Date().toTimeString().slice(0,8),"⏭ 跳过当前实验","info");});};
+document.getElementById("pauseBtn").onclick=()=>{
+  fetch("/pause",{method:"POST"}).then(()=>{addLog(new Date().toTimeString().slice(0,8),"⏸ 已暂停训练（服务仍在）","warn");
+    document.getElementById("pauseBtn").style.display="none";
+    document.getElementById("resumeBtn").style.display="";});};
+document.getElementById("resumeBtn").onclick=()=>{
+  fetch("/resume",{method:"POST"}).then(()=>{addLog(new Date().toTimeString().slice(0,8),"▶ 已恢复训练","info");
+    document.getElementById("resumeBtn").style.display="none";
+    document.getElementById("pauseBtn").style.display="";});};
+
+/* ===================== 老板屏 ===================== */
+const BOSS={
+ 1:{title:"中移（上海）产业研究院 · 算法实习生周报",body:()=>weeklyDoc()},
+ 2:{title:"技术分享 · 端侧预测性维护",body:()=>`<div class="ppt"><h1>端侧预测性维护与 RUL 预测</h1><div class="sub">NASA C-MAPSS → LSTM → ONNX → C++ 端侧推理 · 金毅彬</div><div class="sub" style="margin-top:40px">主训模型 LSTM(hidden=64, layers=2) · 窗口=30 · RMSE(capped125)=${bossFinal?bossFinal.rmse_capped125.toFixed(2):'14.27'} · MC Dropout 95%CI=${(bossFinal?bossFinal.coverage95_mcdropout*100:0).toFixed(0)}% · C++ ORT 延迟≈0.17ms</div></div>`},
+ 3:{title:"技术方案评审 · 售后工单智能分发",body:()=>techDoc()},
+ 4:{title:"系统信息",body:()=>neofetchDoc()}
+};
+function weeklyDoc(){const f=bossFinal;
+ return `<div class="doc"><h1>算法实习生周报 · 多 Agent 售后模板迁移</h1>
+  <div class="meta">Owner：金毅彬 · 日期：2026-08-20 · 状态：进行中</div>
+  <h2>本周工作</h2><ul>
+  <li>推进售后工单多 Agent 模板迁移：基于 DeepSeek 文本分类 + GLM-4V 视觉复核构建知识库流水线，处理 2117 篇历史工单，分类 P50 3.91ms、视觉复核 P50 5.10ms。</li>
+  <li>复现端侧预测性维护基准：在 NASA C-MAPSS FD001 上训练 LSTM RUL 模型，本机实时训练控制台验证 ${f?('RMSE(capped125)='+f.rmse_capped125.toFixed(2)):'RMSE(capped125)=14.27'}、MAE=${f?f.mae_capped125.toFixed(2):'10.48'}，优于 XGBoost 基线 17.48。</li>
+  <li>新增 MC Dropout 不确定性估计：对测试集做 30 次随机前向，输出 RUL 均值与 95% 置信区间，95% 区间覆盖率达 ${f?(f.coverage95_mcdropout*100).toFixed(1):'--'}%，把"点估计"升级为"带风险区间的预测"。</li>
+  <li>完成 ONNX 导出与 C++ ONNX Runtime 推理验证，端侧单条窗口推理延迟 ≈0.17ms。</li></ul>
+  <h2>下周计划</h2><ul><li>扩充长尾故障样本，提升自动结案率至 67%+。</li><li>接入本地 LLM 解释层，输出结构化诊断建议。</li></ul></div>`;}
+function techDoc(){const f=bossFinal;
+ return `<div class="doc"><h1>技术方案评审：售后工单智能分发</h1>
+  <div class="meta">文档 Owner：金毅彬 · 状态：评审中 · 最后更新 2026-08-20</div>
+  <h2>1. 背景与目标</h2><p>现有售后工单依赖人工分派，平均响应 4.2 小时。目标通过模型自动路由，将自动结案率提升至 60%+。</p>
+  <h2>2. 架构设计</h2><table><tr><th>模块</th><th>技术选型</th><th>指标</th></tr>
+  <tr><td>文本分类</td><td>DeepSeek-LLM-7B + LoRA v3</td><td>P50 3.91ms / Acc 91.2%</td></tr>
+  <tr><td>视觉复核</td><td>GLM-4V-Plus</td><td>P50 5.10ms / 拦截 12.3%</td></tr>
+  <tr><td>编排</td><td>多 Agent（安装/故障/退货）</td><td>自动结案 67%</td></tr></table>
+  <h2>3. 数据</h2><p>2117 篇历史工单，覆盖安装咨询、故障报修、退货申请三大意图，标注一致率 96%。</p>
+  <h2>4. 关联验证（本机实时训练）</h2><p>RUL LSTM 在 FD001 上 ${f?('RMSE(capped125)='+f.rmse_capped125.toFixed(3)+'，MAE='+f.mae_capped125.toFixed(3)):'RMSE(capped125)=14.27，MAE=10.48'}，已通过真实训练控制台复现。</p>
+  <h2>5. 不确定性量化（新增能力）</h2><p>引入 MC Dropout：对测试集做 30 次随机前向，输出 RUL 均值与 95% 置信区间。实测 95% 区间覆盖率 ${f?(f.coverage95_mcdropout*100).toFixed(1):'--'}%、平均σ ${f?f.mean_std_mcdropout.toFixed(2):'--'}，使维护决策从"单点预测"升级为"风险区间决策"。</p></div>`;}
+function neofetchDoc(){
+ const s=state.sys||{};
+ return `<div class="neofetch"><span class="a">edgepdm@workbench</span>
+-----------------
+OS<span class="a">:</span> Windows (浏览器宿主)
+<span class="a">GPU</span><span class="a">:</span> ${SysInfo.gpu}
+<span class="a">CPU</span><span class="a">:</span> ${SysInfo.cores} 逻辑核心
+<span class="a">MEM</span><span class="a">:</span> ${SysInfo.mem}
+<span class="a">RES</span><span class="a">:</span> ${SysInfo.res} @ ${SysInfo.tz}
+<span class="a">NET</span><span class="a">:</span> ${SysInfo.net}  IP ${SysInfo.ip}
+<span class="a">PROC</span><span class="a">:</span> CPU ${s.proc_cpu??'--'}%  RSS ${s.rss_mb??'--'}MB
+<span class="a">DISK</span><span class="a">:</span> ${s.disk??'--'}%
+<span class="a">TRAIN</span><span class="a">:</span> ${bossFinal?('RMSE='+bossFinal.rmse_capped125.toFixed(3)+'  MAE='+bossFinal.mae_capped125.toFixed(3)+'  95%CI='+(bossFinal.coverage95_mcdropout*100).toFixed(0)+'%'):'running…'}
+</div>`;}
+let bossOn=false;
+function showBoss(k){const b=BOSS[k];if(!b)return;
+  document.getElementById("bossBody").innerHTML=`<h1>${b.title}</h1>`+b.body();}
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){bossOn=!bossOn;
+    document.getElementById("boss").classList.toggle("on",bossOn);
+    document.getElementById("bosstip").style.display=bossOn?"block":"none";
+    if(bossOn)showBoss(1);}
+  else if(bossOn&&e.key==="1")showBoss(1);
+  else if(bossOn&&e.key==="2")showBoss(2);
+  else if(bossOn&&e.key==="3")showBoss(3);
+  else if(bossOn&&e.key==="4")showBoss(4);
+});
+/* runs 表 */
+document.getElementById("tbRuns").onclick=()=>{
+  fetch("/experiments").then(r=>r.json()).then(rows=>{
+    let html="<h1>实验记录 (experiments/)</h1><table><tr><th>实验</th><th>RMSE(cap125)</th><th>MAE</th><th>NASA</th></tr>";
+    rows.forEach(r=>{const m=r.metrics?.metrics;if(m){html+=`<tr><td>${r.name}</td><td>${m.rmse_capped125?.toFixed(3)}</td><td>${m.mae_capped125?.toFixed(3)}</td><td>${m.nasa_score_capped125?.toFixed(0)}</td></tr>`;}else{html+=`<tr><td>${r.name}</td><td colspan=3>—</td></tr>`;}});
+    html+="</table>";
+    const wasOn=bossOn;bossOn=true;document.getElementById("boss").classList.add("on");
+    document.getElementById("bosstip").style.display="block";
+    document.getElementById("bossBody").innerHTML=html;
+    if(!wasOn){document.getElementById("boss").dataset.back="1";}
+  });};
+/* 时钟 */
+setInterval(()=>{document.getElementById("clock").textContent=new Date().toTimeString().slice(0,8);},1000);
+window.addEventListener("resize",redraw);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "engine_id": 44,
+  "predicted_rul": 12,
+  "risk_level": "urgent",
+  "abnormal_sensors": ["sensor_4", "sensor_9", "sensor_15"],
+  "trend": "accelerating degradation in last 10 cycles",
+  "model": "lstm_onnx"
+}

@@ -1,0 +1,18 @@
+{
+  "created_utc": "2026-07-22T21:44:33.548440+00:00",
+  "metrics": {
+    "model": "lstm",
+    "window": 30,
+    "n_features": 17,
+    "epochs": 25,
+    "best_val_rmse": 13.704741346060196,
+    "n_test_units": 100,
+    "rmse_raw_rul": 15.366010429892365,
+    "rmse_capped125": 14.270926485505608,
+    "mae_capped125": 10.482232570648193,
+    "nasa_score_capped125": 324.57284061029395,
+    "baseline_xgboost_rmse_capped125": 17.484151162176904,
+    "baseline_xgboost_nasa_score_capped125": 929.3452913157207,
+    "beat_xgboost_rmse": true
+  }
+}

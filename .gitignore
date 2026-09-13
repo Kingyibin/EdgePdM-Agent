@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (large raw dumps)
+data/raw/**
+!data/raw/.gitkeep
+!data/README.md
+data/processed/**
+!data/processed/.gitkeep
+
+# Models / weights
+models/**
+!models/.gitkeep
+*.gguf
+*.onnx
+*.pt
+*.pth
+*.joblib
+*.pkl
+
+# C++ build
+cpp_inference/build/
+cmake-build-*/
+*.obj
+*.exe
+*.pdb
+
+# Third-party SDKs (download locally)
+third_party/onnxruntime-*/
+third_party/llama-cpp/
+third_party/*.zip
+models/gguf/
+models/onnx/*.onnx
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Logs / local
+*.log
+.cache/

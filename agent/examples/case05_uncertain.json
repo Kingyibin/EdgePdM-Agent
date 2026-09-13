@@ -1,0 +1,9 @@
+{
+  "engine_id": 91,
+  "predicted_rul": 50,
+  "risk_level": "monitor",
+  "abnormal_sensors": ["sensor_14"],
+  "trend": "short observation window; confidence medium",
+  "model": "lstm_onnx",
+  "data_quality": "partial trajectory only"
+}

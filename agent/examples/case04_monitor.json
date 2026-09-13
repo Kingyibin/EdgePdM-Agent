@@ -1,0 +1,8 @@
+{
+  "engine_id": 7,
+  "predicted_rul": 65,
+  "risk_level": "monitor",
+  "abnormal_sensors": ["sensor_9"],
+  "trend": "mild upward drift; still above maintenance threshold",
+  "model": "lstm_onnx"
+}
