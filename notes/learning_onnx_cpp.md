@@ -42,7 +42,7 @@ ONNX Runtime 预编译包放在：
 | Python ORT pred (unit1) | 118.4717 |
 | C++ ORT pred (unit1) | 118.472 |
 | 平均延迟 | **≈ 0.167 ms** / 次（warmup=5, iters=50, 1 thread） |
-| 吞吐 | ≈ 5988 qps |
+| 延迟倒数 | ≈ 5988 次/秒（`1000/0.167`，单线程，不是并发吞吐） |
 
 与 `true_rul_unit1=112` 的误差属于模型误差，不是部署误差（C++/Python 一致）。
 

@@ -1,5 +1,6 @@
 {
-  "engine_id": 7,
+  "engine_id": "fixture-monitor",
+  "payload_origin": "hand_authored_prompt_fixture",
   "predicted_rul": 65,
   "risk_level": "monitor",
   "abnormal_sensors": ["sensor_9"],

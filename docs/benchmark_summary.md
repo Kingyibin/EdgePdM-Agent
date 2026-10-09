@@ -25,7 +25,7 @@
 | Python ORT pred (unit1) | 118.4717 | `exp_20260723_cpp_onnx_infer/metrics.json` |
 | C++ ORT pred (unit1) | 118.472 | 同上 |
 | 平均延迟 | **0.167 ms** | 同上 |
-| 吞吐 | ≈5988 qps | 同上 |
+| 延迟倒数 | ≈5988 次/秒 | 同上；`1000/0.167`，单线程，不是并发压测 |
 
 ## 本地 LLM
 

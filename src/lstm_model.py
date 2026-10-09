@@ -33,11 +33,10 @@ class RULSTM(nn.Module):
 
 @torch.no_grad()
 def mc_dropout_predict(model: nn.Module, x: torch.Tensor, n_samples: int = 30, device=None):
-    """MC Dropout 不确定性估计：保持 dropout 激活，多次随机前向取均值与标准差。
+    """MC Dropout：保持 dropout 开启，多次前向，返回 (mean, std)。
 
-    返回 (mean, std)，shape 均为 (N,)。这是项目此前缺失的能力：
-    原模型只输出 RUL 点估计，本函数为每个测试单元给出均值与 95% 置信区间，
-    为"何时安排维护"提供量化风险依据。
+    std 是这几次随机前向的样本标准差，不是校准过的置信区间。
+    马拉松旁证里名义 95% 区间覆盖率约 0.67，不能用来写停机阈值。
     """
     model.train()  # 关键：保持 dropout 开启，使前向具有随机性
     if device is not None:

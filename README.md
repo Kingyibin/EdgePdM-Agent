@@ -1,58 +1,53 @@
 # EdgePdM-Agent
 
-端侧预测性维护与本地 LLM 诊断解释系统。
+用 NASA C-MAPSS FD001 预测发动机剩余寿命，把 LSTM 导出为 ONNX，在 C++ 里用 ONNX Runtime 推理，再用本地小模型把结构化结果写成维护说明。
 
-> NASA C-MAPSS 多传感器时间序列 → RUL 预测 → C++/ONNX 端侧推理 → llama.cpp 本地解释。
-
-**当前状态**：G0–G6 均已 PASS，项目 COMPLETE（见 `docs/gates/CURRENT_GATE.md`）。
-
----
-
-## 为什么做
-
-补齐 C++ AI 工程 / 端侧部署 / Agent 解释能力；用公开 benchmark 避免「手册资料不足」。  
-动机与叙事：`notes/mindset_journal.md`、`docs/02_decision_record.md`。
-
-**全过程入口（推荐先读）**：`docs/INDEX.md`  
-**时间线与痕迹地图**：`docs/05_full_process_timeline.md`  
-**定稿审查**：`docs/06_final_delivery_audit.md`  
-**角色治理**：`docs/04_roles_and_governance.md`
-
-初学者技术主线：
-
-1. `docs/tutorials/00_project_walkthrough_for_beginners.md`
-2. `notes/learning_cmapss.md`
-3. 本文「快速复现」
-
----
-
-## 架构
-
-见 `assets/design/architecture.md`。指标见 `docs/benchmark_summary.md`。
+作者：金毅彬
 
 ```text
-C-MAPSS → Python 训练(XGBoost/LSTM) → ONNX → C++ ORT → JSON → llama-server 解释
+C-MAPSS FD001 → Python 训练 → ONNX → C++ 推理 → JSON → llama.cpp 解释
 ```
 
----
+## 结果
 
-## 环境
+FD001，100 台测试发动机，标签上限 125 个周期。
+
+| 项 | 结果 | 出处 |
+|----|------|------|
+| Ridge RMSE | 20.84 | `experiments/exp_20260722_baseline_xgb_ridge/metrics.json` |
+| XGBoost RMSE | 17.48 | 同上 |
+| LSTM RMSE / MAE / NASA Score | **14.27 / 10.48 / 324.6** | `experiments/exp_20260722_lstm_fd001/metrics.json` |
+| 同一窗口 Python ORT | 118.4717 | `experiments/exp_20260723_cpp_onnx_infer/metrics.json` |
+| 同一窗口 C++ ORT | 118.472 | 同上 |
+| C++ 平均延迟 | **0.167 ms** | warmup 5 次后，再测 50 次，单线程 |
+
+C++ 程序读取已经缩放过的 30×17 窗口。本地模型只解释 JSON，不重新计算 RUL。延迟是这一台 CPU 上的单窗口耗时。
+
+更细的口径在 `docs/benchmark_summary.md`。
+
+## 仓库里有什么
+
+| 路径 | 内容 |
+|------|------|
+| `src/`、`scripts/` | 数据、特征、LSTM、指标、ONNX 导出 |
+| `cpp_inference/` | C++ / ONNX Runtime 推理 |
+| `agent/` | llama.cpp 解释客户端与示例 |
+| `experiments/` | 每次实验的 `metrics.json` |
+| `docs/` | 决策、教程、指标说明 |
+
+原始数据、`.pt`、`.onnx` 和 GGUF 不进版本库。按下面的步骤在本机生成。
+
+## 运行
+
+在仓库根目录执行。
 
 ```powershell
-cd E:\EdgePdM-Agent
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-额外工具链（G4）：WinLibs（cmake/g++），ONNX Runtime 见 `cpp_inference/README.md`。  
-额外资源（G5）：llama.cpp release + GGUF，见 `agent/README.md`。
-
----
-
-## 数据
-
-按 `data/README.md` 下载 Zenodo `CMAPSSData.zip`，放置：
+数据使用 NASA C-MAPSS FD001，放到：
 
 ```text
 data/raw/train_FD001.txt
@@ -60,64 +55,31 @@ data/raw/test_FD001.txt
 data/raw/RUL_FD001.txt
 ```
 
----
-
-## 快速复现
-
-### 1) Baseline + LSTM
+下载说明见 `data/README.md`。
 
 ```powershell
 python scripts\run_baseline_fd001.py
 python scripts\run_lstm_fd001.py
+python scripts\export_lstm_onnx.py
 ```
 
-### 2) ONNX + C++
+C++ 需要 CMake、g++ 和 ONNX Runtime，步骤在 `cpp_inference/README.md`。
 
 ```powershell
-python scripts\export_lstm_onnx.py
 cd cpp_inference
 cmake -S . -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j 4
 .\build\edgepdm_infer.exe ..\models\onnx\rul_lstm.onnx ..\models\onnx\sample_window_unit1_scaled.csv 5 50
 ```
 
-### 3) 本地 LLM 解释
+本地解释需要 llama.cpp 的 `llama-server` 和 Qwen2.5-0.5B GGUF，见 `agent/README.md`。
 
 ```powershell
 .\scripts\start_llama_server.ps1
 python agent\explain_client.py --json agent\examples\case01_warning.json
 ```
 
----
-
-## 关键结果（摘要）
-
-| 项 | 结果 |
-|----|------|
-| XGBoost RMSE (capped125) | 17.48 |
-| LSTM RMSE (capped125) | **14.27** |
-| C++ ORT 延迟 | **≈0.17 ms** |
-| LLM | 5 条结构化解释示例 |
-
-简历条目草稿：`docs/resume_project_bullet.md`。
-
----
-
-## 目录
-
-| 路径 | 用途 |
-|------|------|
-| `docs/` | 计划、决策、Gate、教程、benchmark |
-| `notes/` | 日志、心路、试错、学习笔记 |
-| `experiments/` | 实验指标与结论 |
-| `src/` / `scripts/` | Python 训练与导出 |
-| `cpp_inference/` | C++ 推理 |
-| `agent/` | llama.cpp 解释客户端 |
-| `.cursor/agents/project-manager.md` | 关卡审核主管 |
-
-## 工作方式
-
-每完成一个 Gate → 调用 **project-manager** 审核 → 仅 PASS 进入下一关。
+`agent/examples/case0*.json` 是手写提示词样例，用来看解释层怎么说话。某台发动机的预测数字以 `experiments/exp_20260722_lstm_fd001/predictions_lstm.csv` 和 C++ 实验记录为准。
 
 ## 参考
 

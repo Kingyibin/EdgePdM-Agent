@@ -16,7 +16,7 @@ flowchart TB
   subgraph Edge["端侧推理 C++"]
     F[导出 ONNX]
     G[ONNX Runtime<br/>edgepdm_infer]
-    H[结构化结果 JSON<br/>RUL / risk / sensors]
+    H[C++ 只打印 RUL<br/>风险等级不在端侧计算]
   end
 
   subgraph Explain["解释层 本地 LLM"]
@@ -36,5 +36,5 @@ flowchart TB
 | 模块 | 负责 | 不负责 |
 |------|------|--------|
 | LSTM/XGBoost | 预测 RUL | 写维修话术 |
-| C++ ORT | 低延迟推理 | 训练 |
+| C++ ORT | 对预缩放窗口做低延迟推理，打印 RUL | 训练、滚动特征、标准化、风险分级、异常传感器 |
 | llama.cpp | 解释 JSON | 预测 RUL / 查手册 RAG |

@@ -1,5 +1,6 @@
 {
-  "engine_id": 12,
+  "engine_id": "fixture-healthy",
+  "payload_origin": "hand_authored_prompt_fixture",
   "predicted_rul": 118,
   "risk_level": "healthy",
   "abnormal_sensors": [],

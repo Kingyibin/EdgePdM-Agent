@@ -11,7 +11,7 @@
 - LSTM hidden=64, layers=2, dropout=0.2
 - Adam lr=1e-3, MSE, 25 epochs, 按 unit 留 20% 验证，取 best val checkpoint
 - Scaler：只在训练窗口上 fit
-- 测试：每台 last window（不足则前端 pad）
+- 测试：每台 last window。代码里长度不足 30 会重复第一行；FD001 测试最短 31 周期，这次没有触发。
 
 ## 同口径对比（test，capped125）
 
@@ -21,12 +21,12 @@
 | **G3 LSTM** | **14.27** | **10.48** | **324.6** |
 
 结论：**LSTM 优于表格 XGBoost baseline**（RMSE 与 Score 均更好）。  
-部署候选：优先导出/对照 LSTM；若 C++ 端优先简单，仍可先部署 XGBoost ONNX，再迭代 LSTM ONNX。
+结题端侧导出的是这份 LSTM，没有另导 XGBoost ONNX。
 
 ## 误差观察
 
-- 验证集 best RMSE ≈ 13.70；测试 14.27，泛化尚可，未见严重崩坏。
-- Score 大幅下降说明「偏晚预测」的大错误更少（对维护更友好）。
+- 验证集 best RMSE ≈ 13.70；测试 14.27。两者聚合方式不同（全部窗口 vs 每台最后一窗），不能直接读成「只掉了 0.6」。
+- 相对 XGBoost，NASA Score 从 929 降到 325。封盖复盘里，XGBoost 的 Score 有 87.6% 来自晚报警，LSTM 是 61%。详见 `docs/07_seal_review.md` 第 6 节。
 
 ## 产物
 

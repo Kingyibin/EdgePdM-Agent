@@ -1,5 +1,6 @@
 {
-  "engine_id": 1,
+  "engine_id": "fixture-warning",
+  "payload_origin": "hand_authored_prompt_fixture",
   "predicted_rul": 38,
   "risk_level": "warning",
   "abnormal_sensors": ["sensor_11", "sensor_14"],

@@ -17,7 +17,7 @@ models:
   artifact_dir: models
 
 inference:
-  onnx_path: models/rul_baseline.onnx
+  onnx_path: models/onnx/rul_lstm.onnx
 
 llm:
   # local llama-server OpenAI-compatible endpoint

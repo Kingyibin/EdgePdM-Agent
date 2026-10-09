@@ -259,7 +259,7 @@ def run_training() -> None:
             "std": [round(float(v), 2) for v in std_pred],
         })
         push_event("unc", {"rmse_mean": rmse_mean, "coverage95": coverage, "mean_std": mean_std})
-        log(f"不确定性：RMSE(MC均值)={rmse_mean:.3f}  95%PI覆盖率={coverage*100:.1f}%  平均σ={mean_std:.2f}", "success")
+        log(f"不确定性：RMSE(MC均值)={rmse_mean:.3f}  名义95%区间覆盖率={coverage*100:.1f}%  平均σ={mean_std:.2f}（未校准，不能当停机阈值）", "success")
         xgb_rmse = 17.484151162176904
         final = {
             "rmse_raw_rul": rmse_raw,

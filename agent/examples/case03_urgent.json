@@ -1,5 +1,6 @@
 {
-  "engine_id": 44,
+  "engine_id": "fixture-urgent",
+  "payload_origin": "hand_authored_prompt_fixture",
   "predicted_rul": 12,
   "risk_level": "urgent",
   "abnormal_sensors": ["sensor_4", "sensor_9", "sensor_15"],
